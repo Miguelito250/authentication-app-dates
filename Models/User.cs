@@ -24,8 +24,10 @@ public class User
     [Required]
     [MaxLength(4)]
     public required string CodeCountry { get; set; }
+
     [Required]
-    public int Phone { get; set; }
+    [MaxLength(15)]
+    public required string Phone { get; set; }
 
     [Required]
     public bool PhoneConfirmed { get; set; }
