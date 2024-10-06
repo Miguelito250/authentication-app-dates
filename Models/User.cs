@@ -4,18 +4,18 @@ public class User
 {
     [Key]
     [Required]
-    public string? IdUUID { get; set; }
+    public Guid UUID { get; set; }
 
     [Required]
     [MaxLength(20)]
-    public string? Username { get; set; }
+    public required string Username { get; set; }
 
     [Required]
-    public string? PasswordHash { get; set; }
+    public required string PasswordHash { get; set; }
 
     [Required]
     [MaxLength(30)]
-    public string? Email { get; set; }
+    public required string Email { get; set; }
 
 
     [Required]
@@ -23,7 +23,7 @@ public class User
 
     [Required]
     [MaxLength(4)]
-    public string? CodeCountry { get; set; }
+    public required string CodeCountry { get; set; }
     [Required]
     public int Phone { get; set; }
 
@@ -32,10 +32,7 @@ public class User
 
     [Required]
     [MaxLength(30)]
-    public string? Name { get; set; }
-
-    [MaxLength(30)]
-    public string? LastName { get; set; }
+    public required string FullName { get; set; }
 
     [MaxLength(255)]
     public string? AboutMe { get; set; }
@@ -49,4 +46,12 @@ public class User
 
     [Required]
     public DateTime DeletedAt { get; set; }
+
+    //Atributos de Google
+    public string? GoogleId {get; set;}
+    public string? ProfilePicture {get; set;}
+
+    // Relaciones
+    public required RefreshToken RefreshToken {get; set;}
+
 }

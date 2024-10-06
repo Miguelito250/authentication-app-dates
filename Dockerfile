@@ -12,9 +12,13 @@ ENTRYPOINT ["dotnet", "AuthenticationService.dll"]
 
 # Librerias para agregar
 # JWT 
-# SQL SERVER y Tools
+# SQL SERVER, Design y Tools
 # dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+# dotnet add package Microsoft.EntityFrameworkCore.Design
 # dotnet add package Microsoft.EntityFrameworkCore.Tools
+
+# Instalar Entity Framework
+# dotnet tool install --global dotnet-ef
 
 # Solo para entorno de desarrollo ejecutar y colocar la clave secreta 
 # dotnet user-secrets init

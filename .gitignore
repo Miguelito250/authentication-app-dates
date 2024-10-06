@@ -1,0 +1,18 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+
+# User secrets
+secrets.json
+
+# Visual Studio files
+.vs/
+*.sln.ide
+
+# Visual Studio Code files
+.vscode/
+
+# Rider files
+.idea/

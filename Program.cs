@@ -1,10 +1,14 @@
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();  // Agrega servicios para los controladores
 
 var key = builder.Configuration["JwtSettings:SecretKey"];
+
+builder.Services.AddDbContext<AuthenticationContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication("Bearer").AddJwtBearer(opt =>
