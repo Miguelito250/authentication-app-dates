@@ -25,9 +25,9 @@ namespace AuthenticationService.Controllers
             _context = context;
         }
 
-        [Route("signin")]
+        [Route("signup")]
         [HttpPost]
-        public IActionResult Sigin([FromBody] User user)
+        public async Task<IActionResult> SignUp([FromBody] User user)
         {
 
             if (!ModelState.IsValid)
@@ -57,8 +57,8 @@ namespace AuthenticationService.Controllers
 
             user.RefreshToken = refToken;
 
-            _context.Users.Add(user);
-            _context.SaveChanges();
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
 
             return Ok(new
             {
