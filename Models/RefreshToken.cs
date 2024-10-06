@@ -12,6 +12,5 @@ public class RefreshToken
     // Relaciones
     [Required]
     public Guid UserId { get; set; }
-    [Required]
-    public required User User { get; set; }
+    public User? User { get; set; }
 }

@@ -40,7 +40,6 @@ public class User
     public string? AboutMe { get; set; }
 
     [Required]
-    [MaxLength(2)]
     public int PaidPlan { get; set; }
 
     [Required]
