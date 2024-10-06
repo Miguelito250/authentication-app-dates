@@ -11,16 +11,16 @@ public class Jwt
     public Jwt(IConfiguration configuration){
         _secretKey = configuration["JwtSettings:SecretKey"]!;
     }
-    public string CreateJWT(Login model)
+
+    // Se debe de tener en cuenta de Cambiar el contador de Segundos de expiracion del token a dias
+    public string CreateJWT(ClaimsIdentity arrayClaims, int daysExpire)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var byteKey = Encoding.UTF8.GetBytes(_secretKey);
         var tokenDes = new SecurityTokenDescriptor
         {
-            Subject = new ClaimsIdentity(new Claim[] {
-                        new Claim(ClaimTypes.Name, model.User!),
-                    }),
-            Expires = DateTime.UtcNow.AddMonths(1),
+            Subject = arrayClaims,
+            Expires = DateTime.UtcNow.AddSeconds(daysExpire),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(byteKey), SecurityAlgorithms.HmacSha256Signature)
         };
 
@@ -28,4 +28,6 @@ public class Jwt
 
         return tokenHandler.WriteToken(token);
     }
+
+
 }

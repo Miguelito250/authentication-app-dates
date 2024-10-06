@@ -53,6 +53,6 @@ public class User
     public string? ProfilePicture {get; set;}
 
     // Relaciones
-    public required RefreshToken RefreshToken {get; set;}
+    public RefreshToken? RefreshToken {get; set;}
 
 }

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AuthenticationService.Models;
 using AuthenticationService.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthenticationService.Controllers
@@ -10,9 +11,60 @@ namespace AuthenticationService.Controllers
     public class AuthController : Controller
     {
         private readonly IConfiguration _configuration;
+        private readonly AuthenticationContext _context;
+        private readonly Jwt _jwtService;
 
-        public AuthController(IConfiguration configuration){
+        public AuthController(
+            AuthenticationContext context,
+            IConfiguration configuration,
+            Jwt jwtService
+            )
+        {
             _configuration = configuration;
+            _jwtService = jwtService;
+            _context = context;
+        }
+
+        [Route("signin")]
+        [HttpPost]
+        public IActionResult Sigin([FromBody] User user)
+        {
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var dayExpireRefreshToken = 10;
+            var dayExpireAccessToken = 30;
+
+            var necessaryClaims = new ClaimsIdentity(
+                [
+                    new Claim(ClaimTypes.Name, user.Username!),
+                    new Claim("UUID", user.UUID.ToString())
+                ]
+            );
+
+            var accessToken = _jwtService.CreateJWT(necessaryClaims, dayExpireAccessToken);
+            var refreshToken = _jwtService.CreateJWT(necessaryClaims, dayExpireRefreshToken);
+
+            var refToken = new RefreshToken
+            {
+                Token = refreshToken,
+                ExpirationDate = DateTime.UtcNow.AddSeconds(dayExpireRefreshToken),
+                UserId = user.UUID
+            };
+
+            user.RefreshToken = refToken;
+
+            _context.Users.Add(user);
+            _context.SaveChanges();
+
+            return Ok(new
+            {
+                message = "Succeed created user",
+                accesToken = accessToken
+            });
         }
 
         [HttpPost]
@@ -22,14 +74,14 @@ namespace AuthenticationService.Controllers
 
             if (!isValidUser)
             {
-                return Unauthorized(new {message = "Incorrect credentials"});
+                return Unauthorized(new { message = "Incorrect credentials" });
             }
 
             var _jwt = new Jwt(_configuration);
-            
-            var token = _jwt.CreateJWT(model);
-            
-            return Ok(new {token});
+
+            // var token = _jwt.CreateJWT(model);
+
+            return Ok(new { });
         }
 
         public bool AuthenticateUser(string user, string password)

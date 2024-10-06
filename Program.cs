@@ -1,4 +1,5 @@
 using System.Text;
+using AuthenticationService.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -30,6 +31,7 @@ builder.Services.AddAuthentication("Bearer").AddJwtBearer(opt =>
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<Jwt>();
 
 var app = builder.Build();
 
