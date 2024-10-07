@@ -20,6 +20,9 @@ ENTRYPOINT ["dotnet", "AuthenticationService.dll"]
 # Instalar Entity Framework
 # dotnet tool install --global dotnet-ef
 
+# Instalar libreria para hashear contraseñas
+# dotnet add package BCrypt.Net-Next
+
 # Solo para entorno de desarrollo ejecutar y colocar la clave secreta 
 # dotnet user-secrets init
 # dotnet user-secrets set "JwtSettings:SecretKey" "zY7BxE84TUiWYtPQk2sJ9vL5FdHRg5VkjxVqM2yV3Wk"
