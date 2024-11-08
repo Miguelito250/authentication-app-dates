@@ -4,9 +4,22 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddControllers();  // Agrega servicios para los controladores
-
 var key = builder.Configuration["JwtSettings:SecretKey"];
+
+// Add CORS services
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:4200")
+                   .AllowAnyHeader()
+                   .AllowAnyMethod();
+        });
+});
+
+builder.Services.AddControllers();
+
 
 builder.Services.AddDbContext<AuthenticationContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -19,7 +32,11 @@ builder.Services.AddAuthentication("Bearer").AddJwtBearer(opt =>
 
     opt.RequireHttpsMetadata = false;
 
-    opt.TokenValidationParameters = new TokenValidationParameters(){
+    opt.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero,
         ValidateAudience = false,
         ValidateIssuer = false,
         IssuerSigningKey = signinKey,
@@ -42,10 +59,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseRouting();
+
+app.UseCors("AllowAngular");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();  // Mapear los controladores automáticamente
+app.MapControllers();
 
 app.UseHttpsRedirection();
 

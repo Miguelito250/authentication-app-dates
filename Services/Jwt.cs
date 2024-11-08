@@ -1,7 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using System.Text;
+
+using AuthenticationService.Utilities;
 
 namespace AuthenticationService.Services;
 public class Jwt
@@ -27,7 +29,7 @@ public class Jwt
                         new Claim("UUID", user.UUID.ToString())
                     ]
                 ),
-                Expires = DateTime.UtcNow.AddDays(daysExpire),
+                Expires = UtilitiesFunctions.ExpirationToken(daysExpire),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(byteKey), SecurityAlgorithms.HmacSha256Signature)
             };
 
@@ -37,7 +39,7 @@ public class Jwt
         }
         catch (Exception ex)
         {
-            throw new Exception("Error al crear el token JWT", ex);
+            throw new Exception("Error creating JWT token", ex);
         }
     }
 }

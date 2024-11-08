@@ -1,7 +1,11 @@
 using AuthenticationService.Services;
+using Microsoft.EntityFrameworkCore;
 using AuthenticationService.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+
+using Microsoft.AspNetCore.Authorization;
+using AuthenticationService.Utilities;
+using Microsoft.IdentityModel.Tokens;
 
 namespace AuthenticationService.Controllers
 {
@@ -11,8 +15,8 @@ namespace AuthenticationService.Controllers
     {
         private readonly AuthenticationContext _context;
         private readonly Jwt _jwtService;
-        private readonly int _dayExpireRefreshToken = 10;
-        private readonly int _dayExpireAccessToken = 30;
+        private readonly int _dayExpireRefreshToken = 5;
+        private readonly int _dayExpireAccessToken = 1;
 
         public AuthController(
             AuthenticationContext context,
@@ -24,30 +28,42 @@ namespace AuthenticationService.Controllers
         }
 
         /**
-         * RequestRefreshedToken([FromBody] string refreshToken)
+         * ValidateToken()
+         * Validates the provided token by invoking the middleware token validation mechanism.
+         * @return IActionResult indicating the validation result.
+        */
+        [Route("validate-token")]
+        [HttpPost]
+        [Authorize]
+
+        public IActionResult ValidateToken()
+        {
+            return Ok(new { status = true });
+        }
+
+        /**
+         * RequestNewTokens([FromBody] string refreshToken)
          * Updates the refresh token in the database and returns a new access token and refresh token.
          * @param refreshToken The refresh token to update.
          * @return A JSON object containing the new access token and refresh token.
         */
-        [Route("request-refreshed-token")]
+        [Route("request-new-tokens")]
         [HttpPost]
-        public async Task<IActionResult> RequestRefreshedToken([FromBody] string refreshToken)
+        [Authorize]
+        public async Task<IActionResult> RequestNewTokens()
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            Response refreshToken = UtilitiesFunctions.GetElementHeader(HttpContext.Request.Headers, "Authorization");
 
-
-            var token = await _context.RefreshTokens
+            RefreshToken? token = await _context.RefreshTokens
                 .Include(rt => rt.User)
-                .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+                .FirstOrDefaultAsync(rt => rt.Token == refreshToken.Data!.ToString());
 
             if (token is null || token.User is null) return BadRequest(new { message = "The token does not exist or does not have any user assigned" });
 
-            if (DateTime.UtcNow < token.ExpirationDate) return Ok(new { message = "The token has not expired yet" });
+            string newAccessToken = _jwtService.CreateJWT(token.User, _dayExpireAccessToken);
+            string newRefreshToken = _jwtService.CreateJWT(token.User, _dayExpireAccessToken);
 
-            var newAccessToken = _jwtService.CreateJWT(token.User, _dayExpireAccessToken);
-            var newRefreshToken = _jwtService.CreateJWT(token.User, _dayExpireAccessToken);
-
-            token.ExpirationDate = DateTime.UtcNow.AddSeconds(_dayExpireRefreshToken);
+            token.Token = newRefreshToken;
 
             _context.RefreshTokens.Update(token);
             await _context.SaveChangesAsync();
@@ -75,12 +91,19 @@ namespace AuthenticationService.Controllers
                 ModelState
             });
 
-            var isValidUser = await AuthenticateUser(loginModel.User, loginModel.Password);
+            User? existUser = await AuthenticateUser(loginModel.Email, loginModel.Password);
 
-            if (isValidUser is null) return Unauthorized(new { message = "Incorrect credentials" });
+            if (existUser is null) return Unauthorized(new { message = "Incorrect credentials" });
 
-            var accesToken = _jwtService.CreateJWT(isValidUser, _dayExpireAccessToken);
-            var refreshToken = _jwtService.CreateJWT(isValidUser, _dayExpireRefreshToken);
+            string accesToken = _jwtService.CreateJWT(existUser, _dayExpireAccessToken);
+            string refreshToken = _jwtService.CreateJWT(existUser, _dayExpireRefreshToken);
+
+            RefreshToken refreshTokenEntity = existUser.RefreshToken!;
+            refreshTokenEntity.Token = refreshToken;
+            refreshTokenEntity.ExpirationDate = UtilitiesFunctions.ExpirationToken(_dayExpireRefreshToken);
+
+            _context.RefreshTokens.Update(refreshTokenEntity);
+            await _context.SaveChangesAsync();
 
             return Ok(new { accesToken, refreshToken });
         }
@@ -103,7 +126,7 @@ namespace AuthenticationService.Controllers
             var refToken = new RefreshToken
             {
                 Token = refreshToken,
-                ExpirationDate = DateTime.UtcNow.AddSeconds(_dayExpireRefreshToken),
+                ExpirationDate = UtilitiesFunctions.ExpirationToken(_dayExpireRefreshToken),
                 UserId = user.UUID
             };
 
@@ -128,9 +151,10 @@ namespace AuthenticationService.Controllers
          */
         [Route("authenticate-user")]
         [HttpPost]
+        [Authorize]
         public async Task<User?> CallAuthenticationUser([FromBody] Login loginModel)
         {
-            return await AuthenticateUser(loginModel.User, loginModel.Password);
+            return await AuthenticateUser(loginModel.Email, loginModel.Password);
         }
 
         /**
@@ -140,9 +164,11 @@ namespace AuthenticationService.Controllers
         * @param password The password to verify
         * @return null if the credentials are invalid
         */
-        private async Task<User?> AuthenticateUser(string username, string password)
+        private async Task<User?> AuthenticateUser(string email, string password)
         {
-            User? user = await _context.Users.SingleOrDefaultAsync(u => u.Username == username);
+            User? user = await _context.Users
+            .Include(u => u.RefreshToken)
+            .SingleOrDefaultAsync(u => u.Email == email);
 
             if (user is null) return null;
 
