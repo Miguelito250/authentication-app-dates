@@ -1,5 +1,6 @@
 using System.Text;
 using AuthenticationService.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -36,11 +37,46 @@ builder.Services.AddAuthentication("Bearer").AddJwtBearer(opt =>
     {
         ValidateIssuerSigningKey = true,
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero,
         ValidateAudience = false,
         ValidateIssuer = false,
         IssuerSigningKey = signinKey,
     };
+
+    opt.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            if (context.Exception is SecurityTokenExpiredException)
+            {
+                context.Response.OnStarting(async state =>
+                {
+                    var httpContext = (HttpContext)state;
+                    if (!httpContext.Response.HasStarted)
+                    {
+                        httpContext.Response.StatusCode = 401;
+                        httpContext.Response.ContentType = "application/json";
+                        await httpContext.Response.WriteAsync("{\"message\": \"Token expired\"}");
+                    }
+                }, context.HttpContext);
+            }
+            else
+            {
+                context.Response.OnStarting(async state =>
+                {
+                    var httpContext = (HttpContext)state;
+                    if (!httpContext.Response.HasStarted)
+                    {
+                        httpContext.Response.StatusCode = 401;
+                        httpContext.Response.ContentType = "application/json";
+                        await httpContext.Response.WriteAsync("{\"message\": \"Invalid token\"}");
+                    }
+                }, context.HttpContext);
+            }
+
+            return Task.CompletedTask;
+        }
+    };
+
 
 });
 
