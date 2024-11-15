@@ -84,15 +84,11 @@ namespace AuthenticationService.Controllers
         [Route("signin")]
         public async Task<IActionResult> Signin([FromBody] Login loginModel)
         {
-            if (!ModelState.IsValid) return BadRequest(new
-            {
-                message = "Invalid model",
-                ModelState
-            });
+            if (!ModelState.IsValid) return BadRequest(new Response(false, "Invalid model", new { ModelState }));
 
             User? existUser = await AuthenticateUser(loginModel.Email, loginModel.Password);
 
-            if (existUser is null) return Unauthorized(new { message = "Incorrect credentials" });
+            if (existUser is null) return Unauthorized(new Response(false, "Incorrect credentials"));
 
             string accesToken = _jwtService.CreateJWT(existUser, _dayExpireAccessToken);
             string refreshToken = _jwtService.CreateJWT(existUser, _dayExpireRefreshToken);
