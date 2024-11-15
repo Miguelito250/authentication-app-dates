@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 
 using Microsoft.AspNetCore.Authorization;
 using AuthenticationService.Utilities;
-using Microsoft.IdentityModel.Tokens;
 
 namespace AuthenticationService.Controllers
 {
@@ -15,7 +14,7 @@ namespace AuthenticationService.Controllers
     {
         private readonly AuthenticationContext _context;
         private readonly Jwt _jwtService;
-        private readonly int _dayExpireRefreshToken = 5;
+        private readonly int _dayExpireRefreshToken = 2;
         private readonly int _dayExpireAccessToken = 1;
 
         public AuthController(
@@ -38,7 +37,7 @@ namespace AuthenticationService.Controllers
 
         public IActionResult ValidateToken()
         {
-            return Ok(new { status = true });
+            return Ok(new Response(true, "The token is valid"));
         }
 
         /**
@@ -68,11 +67,11 @@ namespace AuthenticationService.Controllers
             _context.RefreshTokens.Update(token);
             await _context.SaveChangesAsync();
 
-            return Ok(new
+            return Ok(new Response(true, "Tokens refreshed", new
             {
                 accessToken = newAccessToken,
                 refreshToken = newRefreshToken
-            });
+            }));
         }
 
         /**
@@ -105,7 +104,7 @@ namespace AuthenticationService.Controllers
             _context.RefreshTokens.Update(refreshTokenEntity);
             await _context.SaveChangesAsync();
 
-            return Ok(new { accesToken, refreshToken });
+            return Ok(new Response(true, "Successful login", new { accesToken, refreshToken }));
         }
 
         /**
@@ -136,12 +135,12 @@ namespace AuthenticationService.Controllers
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
 
-            return Ok(new
-            {
-                message = "Succeed created user",
-                accessToken,
-                refreshToken
-            });
+            return Ok(new Response
+            (
+                true,
+                "Succeed created user",
+                new { accessToken, refreshToken }
+            ));
         }
 
         /**

@@ -21,7 +21,6 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddControllers();
 
-
 builder.Services.AddDbContext<AuthenticationContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -36,10 +35,11 @@ builder.Services.AddAuthentication("Bearer").AddJwtBearer(opt =>
     opt.TokenValidationParameters = new TokenValidationParameters()
     {
         ValidateIssuerSigningKey = true,
-        ValidateLifetime = true,
-        ValidateAudience = false,
-        ValidateIssuer = false,
         IssuerSigningKey = signinKey,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero,
+        ValidateIssuer = false,
     };
 
     opt.Events = new JwtBearerEvents
