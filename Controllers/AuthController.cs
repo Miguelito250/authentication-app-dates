@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using Microsoft.AspNetCore.Authorization;
 using AuthenticationService.Utilities;
+using Microsoft.IdentityModel.Tokens;
 
 namespace AuthenticationService.Controllers
 {
@@ -49,15 +50,17 @@ namespace AuthenticationService.Controllers
         [Route("request-new-tokens")]
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> RequestNewTokens()
+        public async Task<IActionResult> RequestNewTokens([FromBody] string refreshToken)
         {
-            Response refreshToken = UtilitiesFunctions.GetElementHeader(HttpContext.Request.Headers, "Authorization");
+            if (string.IsNullOrEmpty(refreshToken))
+                return BadRequest(new Response(false, "The field cannot be empty or null"));
 
             RefreshToken? token = await _context.RefreshTokens
                 .Include(rt => rt.User)
-                .FirstOrDefaultAsync(rt => rt.Token == refreshToken.Data!.ToString());
+                .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
 
-            if (token is null || token.User is null) return BadRequest(new { message = "The token does not exist or does not have any user assigned" });
+            if (token is null || token.User is null)
+                return BadRequest(new Response(false, "The token does not exist or does not have any user assigned"));
 
             string newAccessToken = _jwtService.CreateJWT(token.User, _dayExpireAccessToken);
             string newRefreshToken = _jwtService.CreateJWT(token.User, _dayExpireAccessToken);

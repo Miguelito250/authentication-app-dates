@@ -1,8 +1,11 @@
-using System.Text;
-using AuthenticationService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using System.Text;
+
+using AuthenticationService.Services;
+using AuthenticationService.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 var key = builder.Configuration["JwtSettings:SecretKey"];
@@ -46,38 +49,27 @@ builder.Services.AddAuthentication("Bearer").AddJwtBearer(opt =>
     {
         OnAuthenticationFailed = context =>
         {
-            if (context.Exception is SecurityTokenExpiredException)
+            var isTokenExpired = context.Exception is SecurityTokenExpiredException;
+
+            context.Response.OnStarting(async state =>
             {
-                context.Response.OnStarting(async state =>
+                var httpContext = (HttpContext)state;
+                if (!httpContext.Response.HasStarted)
                 {
-                    var httpContext = (HttpContext)state;
-                    if (!httpContext.Response.HasStarted)
-                    {
-                        httpContext.Response.StatusCode = 401;
-                        httpContext.Response.ContentType = "application/json";
-                        await httpContext.Response.WriteAsync("{\"message\": \"Token expired\"}");
-                    }
-                }, context.HttpContext);
-            }
-            else
-            {
-                context.Response.OnStarting(async state =>
-                {
-                    var httpContext = (HttpContext)state;
-                    if (!httpContext.Response.HasStarted)
-                    {
-                        httpContext.Response.StatusCode = 401;
-                        httpContext.Response.ContentType = "application/json";
-                        await httpContext.Response.WriteAsync("{\"message\": \"Invalid token\"}");
-                    }
-                }, context.HttpContext);
-            }
+                    string message = isTokenExpired ? "Token expired" : "Invalid token";
+
+                    httpContext.Response.StatusCode = isTokenExpired ? 403 : 401;
+                    httpContext.Response.ContentType = "application/json";
+
+                    var result = JsonSerializer.Serialize(new Response(false, message));
+
+                    await httpContext.Response.WriteAsync(result);
+                }
+            }, context.HttpContext);
 
             return Task.CompletedTask;
         }
     };
-
-
 });
 
 // Add services to the container.
